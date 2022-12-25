@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<form style="display: flex; justify-content: space-between; width: 510px; margin: 0 auto">
+    <input class="enter-text" placeholder="Здесь вводится текст сообщения" style="width: 300px; height: 50px; 
+    border: darkcyan solid 5px; border-radius: 5px;">
+    <button class="message-button" type="button" style="border-radius: 5px">Отправить</button>
+    <button class="geo-button" type="button" style="border-radius: 5px">Геолокация</button>
+</form>
+<div class="output" style="width: 500px; min-height: 500px; border: darkcyan solid 5px; margin-top: 5px; 
+margin-right: auto; margin-left: auto"></div>
+
+<script>
+    const url = 'wss://echo-ws-service.herokuapp.com/';
+    const out = document.querySelector('.output');
+    const btnSend = document.querySelector('.message-button');
+    const input = document.querySelector('.enter-text');
+    const geoButton = document.querySelector('.geo-button');
+    let flag = true;
+    let websock = new WebSocket(url);
+
+    websock.onmessage = (message) => {
+        if (flag) {
+            writeServerResponse(message.data)
+        }
+    };
+
+    websock.onerror = () => {
+        alert('Проблема с Websocket')
+    };
+
+
+    document.body.addEventListener('beforeunload', () => {
+        websock.close();
+        websock = null
+    });
+
+
+    function createServerResponse(message) {
+
+        const userMessageLeft = document.createElement('div');
+        userMessageLeft.className = 'user-message-left';
+        userMessageLeft.style.display = 'flex';
+        userMessageLeft.style.justifyContent = 'left';
+
+        const leftMessage = document.createElement('p');
+        leftMessage.style.width = '200px';
+        leftMessage.style.height = '50px';
+        leftMessage.style.border = 'darkcyan solid 5px';
+        leftMessage.style.borderRadius = '10px';
+        leftMessage.style.display = 'flex';
+        leftMessage.style.justifyContent = 'center';
+        leftMessage.style.alignItems = 'center';
+        leftMessage.textContent = message;
+
+        let x = out.appendChild(userMessageLeft);
+        x.append(leftMessage);
+    }
+
+    function createUserMessage(message) {
+
+        const userMessageRight = document.createElement('div');
+        userMessageRight.className = 'user-message-right';
+        userMessageRight.style.display = 'flex';
+        userMessageRight.style.justifyContent = 'right';
+
+        const rightMessage = document.createElement('p');
+        rightMessage.style.width = '200px';
+        rightMessage.style.height = '50px';
+        rightMessage.style.border = 'darkcyan solid 5px';
+        rightMessage.style.borderRadius = '10px';
+        rightMessage.textContent = message;
+        rightMessage.style.display = 'flex';
+        rightMessage.style.justifyContent = 'center';
+        rightMessage.style.alignItems = 'center';
+
+        let x = out.appendChild(userMessageRight);
+        x.append(rightMessage);
+
+    }
+
+    function createGeoMessage(latitude, longitude) {
+        
+        const userMessageRight = document.createElement('div');
+        userMessageRight.className = 'user-message-right';
+        userMessageRight.style.display = 'flex';
+        userMessageRight.style.justifyContent = 'right';
+        
+        const rightMessage = document.createElement('p');
+        rightMessage.style.width = '200px';
+        rightMessage.style.height = '50px';
+        rightMessage.style.border = 'darkcyan solid 5px';
+        rightMessage.style.borderRadius = '10px';
+        rightMessage.style.display = 'flex';
+        rightMessage.style.justifyContent = 'center';
+        rightMessage.style.alignItems = 'center';
+        
+        const a = document.createElement('a');
+        a.href = `https://www.openstreetmap.org/#map=12/${latitude}/${longitude}`;
+        a.textContent = 'Геолокация';
+        a.style.textDecoration = 'none';
+        rightMessage.append(a);
+
+        let x = out.appendChild(userMessageRight);
+        x.append(rightMessage);
+    }
+
+    function writeUserMessage(message) {
+        if (message.trim()) {
+            createUserMessage(message)
+        } else {
+            alert('Напечатайте что-нибудь')
+        }
+    }
+
+    function writeServerResponse(message) {
+        if (message.trim()) {
+            createServerResponse(message)
+        } 
+
+    }
+    
+    btnSend.addEventListener('click', () => {
+        writeUserMessage(input.value);
+        flag = true;
+        websock.send(input.value);
+
+    });
+
+    geoButton.addEventListener('click', () => {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const {coords} = position;
+            createGeoMessage(coords.latitude, coords.longitude);
+            flag = false;
+            websock.send(`${coords}`)
+        });
+    })
+</script>
+</body>
+</html>
